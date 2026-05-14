@@ -20,8 +20,6 @@
 #include "main.h"
 #include "fdcan.h"
 #include "spi.h"
-#include "stm32c0xx_hal.h"
-#include "stm32c0xx_hal_uart.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
@@ -64,6 +62,76 @@ void SystemClock_Config(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+void customprint(char * toprint) {
+  HAL_UART_Transmit(&huart1, toprint, strlen(toprint), 100);
+}
+
+volatile uint8_t sendcan = 0;
+volatile uint8_t toggleled = 0;
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+  if (htim->Instance == TIM14) {
+    sendcan = 1;
+  }
+  if (htim->Instance == TIM15) {
+    toggleled = 1;
+  }
+}
+
+void add_message_to_queue(FDCAN_TxHeaderTypeDef * header, uint8_t * datatosend) {
+  while (HAL_FDCAN_GetTxFifoFreeLevel(&hfdcan1) == 0) {
+    continue;
+  }
+  
+  uint32_t errormessage = HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, header, (const uint8_t *)datatosend);
+  if (errormessage != HAL_OK) {
+    char buffer[40] = {0};
+    sprintf(buffer, "message send fail, error code %lu", errormessage);
+    customprint(buffer);
+  }
+}
+
+uint8_t onebyte;
+volatile uint8_t gotcommand = 0;
+volatile int fulllen = 40;
+char intbuffer[40] = {0};
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+  intbuffer[40 - fulllen] = onebyte;
+  if (onebyte == '!') {
+    intbuffer[40 - fulllen] = '\0';
+    gotcommand = 1;
+    return;
+  } else {
+    fulllen--;
+  }
+  
+  HAL_UART_Receive_IT(&huart1, &onebyte, 1);
+}
+
+
+char buffer[40] = {0};
+
+int getcommand(uint8_t * buffer, int maxlen) {
+  memset(buffer, 0, maxlen);
+  uint8_t singlebyte = 0;
+  while (maxlen) {
+    HAL_UART_Receive(&huart1, &singlebyte, 1, 0xFFFF);
+    buffer[40 - maxlen] = singlebyte;
+
+    if (singlebyte == '!') {
+      buffer[40 - maxlen] = '\0';
+      break;
+    }
+
+    maxlen--;
+  }
+
+  return maxlen;
+}
+
+
 /* USER CODE END 0 */
 
 /**
@@ -97,9 +165,9 @@ int main(void)
   MX_GPIO_Init();
   MX_FDCAN1_Init();
   MX_SPI1_Init();
-  MX_TIM1_Init();
-  MX_TIM2_Init();
   MX_USART1_UART_Init();
+  MX_TIM14_Init();
+  MX_TIM15_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -132,11 +200,12 @@ int main(void)
   FDCAN_TxHeaderTypeDef txheader4;
   FDCAN_TxHeaderTypeDef txheader5;
   FDCAN_TxHeaderTypeDef txheader6;
+  FDCAN_TxHeaderTypeDef txheader7;
 
   FDCAN_FilterTypeDef canfilter;
 
   txheader1.Identifier = 210;
-  txheader1.IdType = FDCAN_EXTENDED_ID;
+  txheader1.IdType = FDCAN_STANDARD_ID;
   txheader1.TxFrameType = FDCAN_DATA_FRAME;
   txheader1.DataLength = FDCAN_DLC_BYTES_8;
   txheader1.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
@@ -145,7 +214,7 @@ int main(void)
   txheader1.MessageMarker = 0;
 
   txheader2.Identifier = 211;
-  txheader2.IdType = FDCAN_EXTENDED_ID;
+  txheader2.IdType = FDCAN_STANDARD_ID;
   txheader2.TxFrameType = FDCAN_DATA_FRAME;
   txheader2.DataLength = FDCAN_DLC_BYTES_8;
   txheader2.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
@@ -154,7 +223,7 @@ int main(void)
   txheader2.MessageMarker = 0;
 
   txheader3.Identifier = 212;
-  txheader3.IdType = FDCAN_EXTENDED_ID;
+  txheader3.IdType = FDCAN_STANDARD_ID;
   txheader3.TxFrameType = FDCAN_DATA_FRAME;
   txheader3.DataLength = FDCAN_DLC_BYTES_8;
   txheader3.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
@@ -163,7 +232,7 @@ int main(void)
   txheader3.MessageMarker = 0;
 
   txheader4.Identifier = 213;
-  txheader4.IdType = FDCAN_EXTENDED_ID;
+  txheader4.IdType = FDCAN_STANDARD_ID;
   txheader4.TxFrameType = FDCAN_DATA_FRAME;
   txheader4.DataLength = FDCAN_DLC_BYTES_8;
   txheader4.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
@@ -172,7 +241,7 @@ int main(void)
   txheader4.MessageMarker = 0;
 
   txheader5.Identifier = 214;
-  txheader5.IdType = FDCAN_EXTENDED_ID;
+  txheader5.IdType = FDCAN_STANDARD_ID;
   txheader5.TxFrameType = FDCAN_DATA_FRAME;
   txheader5.DataLength = FDCAN_DLC_BYTES_8;
   txheader5.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
@@ -181,7 +250,7 @@ int main(void)
   txheader5.MessageMarker = 0;
 
   txheader6.Identifier = 215;
-  txheader6.IdType = FDCAN_EXTENDED_ID;
+  txheader6.IdType = FDCAN_STANDARD_ID;
   txheader6.TxFrameType = FDCAN_DATA_FRAME;
   txheader6.DataLength = FDCAN_DLC_BYTES_8;
   txheader6.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
@@ -189,19 +258,34 @@ int main(void)
   txheader6.FDFormat = FDCAN_CLASSIC_CAN;
   txheader6.MessageMarker = 0;
 
+  uint8_t dataforshift [8] = {2, 2, 2, 2, 2, 2, 2, 2};
+  txheader7.Identifier = 10;
+  txheader7.IdType = FDCAN_STANDARD_ID;
+  txheader7.TxFrameType = FDCAN_DATA_FRAME;
+  txheader7.DataLength = FDCAN_DLC_BYTES_8;
+  txheader7.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+  txheader7.BitRateSwitch = FDCAN_BRS_OFF;
+  txheader7.FDFormat = FDCAN_CLASSIC_CAN;
+  txheader7.MessageMarker = 0;
   
-  canfilter.IdType = FDCAN_EXTENDED_ID;
+  canfilter.IdType = FDCAN_STANDARD_ID;
   canfilter.FilterIndex = 0;
   canfilter.FilterType = FDCAN_FILTER_MASK;
   canfilter.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
   canfilter.FilterID1 = 0x000;
-  canfilter.FilterID2 = 0x000;  
+  canfilter.FilterID2 = 0x000;
+  
+  //HAL_UART_Receive_IT(&huart1, &onebyte, 1)
+  
 
   HAL_FDCAN_ConfigFilter(&hfdcan1, &canfilter);
 
   HAL_FDCAN_Start(&hfdcan1);
 
   HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
+
+  HAL_TIM_Base_Start_IT(&htim14); 
+  HAL_TIM_Base_Start_IT(&htim15); 
 
 
   MCP320X adc8to15 = {
@@ -230,30 +314,45 @@ int main(void)
   resetADC(&adc16to23);
   uint16_t adcdata8to15[8];
   uint16_t adcdata0to7[8];
-  uint16_t adcdata16to23[8];
+  uint16_t adcdata16to23[8]; 
 
   while (1)
   {
 
-    HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_9);
+    if (toggleled) {
+      toggleled = 0;       
+      HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_9);
+    }
 
-    read_all(&adc8to15, adcdata8to15);
-    HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &txheader1, (uint8_t *)adcdata8to15);
-    HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &txheader2, (uint8_t *)(adcdata8to15 + 4));
-    
-    read_all(&adc16to23, adcdata16to23);
-    HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &txheader3, (uint8_t *)adcdata16to23);
-    HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &txheader4, (uint8_t *)(adcdata16to23 + 4));
-    
-    read_all(&adc0to7, adcdata0to7);
-    HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &txheader5, (uint8_t *)adcdata0to7);
-    HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &txheader6, (uint8_t *)(adcdata0to7+ 4));    
+    if (sendcan) {
+      sendcan = 0;
+      
+      //HAL_IWDG_Refresh(&hiwdg);
 
-    char finalbuffer[600] = {0};      
-    sprintf(finalbuffer, "%u, %u, %u, %u, %u, %u, %u, %u\n", adcdata8to15[0], adcdata8to15[1], adcdata8to15[2], adcdata8to15[3], adcdata8to15[4], adcdata8to15[5], adcdata8to15[6], adcdata8to15[7]);
-    HAL_UART_Transmit(&huart1, finalbuffer, strlen(finalbuffer), 100);
-    
-    HAL_Delay(2);
+      read_all(&adc8to15, adcdata8to15);
+      add_message_to_queue(&txheader1, (uint8_t *)adcdata8to15);
+      add_message_to_queue(&txheader2, (uint8_t *)(adcdata8to15 + 4));
+      
+      read_all(&adc16to23, adcdata16to23);
+      add_message_to_queue(&txheader3, (uint8_t *)adcdata16to23);
+      add_message_to_queue(&txheader4, (uint8_t *)(adcdata16to23 + 4));
+      
+      read_all(&adc0to7, adcdata0to7);
+      add_message_to_queue( &txheader6, (uint8_t *)(adcdata0to7+ 4));
+      add_message_to_queue(&txheader5, (uint8_t *)adcdata0to7);
+
+      customprint("sent all sensors\n"); 
+    }
+
+
+      
+
+      /*
+      char finalbuffer[600] = {0};      
+      sprintf(finalbuffer, "%u, %u, %u, %u, %u, %u, %u, %u\n", adcdata8to15[0], adcdata8to15[1], adcdata8to15[2], adcdata8to15[3], adcdata8to15[4], adcdata8to15[5], adcdata8to15[6], adcdata8to15[7]);
+      HAL_UART_Transmit(&huart1, finalbuffer, strlen(finalbuffer), 100);
+      */
+
 
     /* USER CODE END WHILE */
 
@@ -276,8 +375,10 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSIDiv = RCC_HSI_DIV1;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -287,10 +388,10 @@ void SystemClock_Config(void)
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
   RCC_ClkInitStruct.SYSCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV4;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
   {
