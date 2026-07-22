@@ -327,7 +327,7 @@ int main(void)
     if (sendcan) {
       sendcan = 0;
       
-      //HAL_IWDG_Refresh(&hiwdg);
+      HAL_IWDG_Refresh(&hiwdg);
 
       read_all(&adc8to15, adcdata8to15);
       add_message_to_queue(&txheader1, (uint8_t *)adcdata8to15);
