@@ -131,6 +131,37 @@ int getcommand(uint8_t * buffer, int maxlen) {
   return maxlen;
 }
 
+volatile uint8_t wsFlag1 = 0;
+volatile uint8_t wsFlag2 = 0;
+volatile uint8_t wsFlag3 = 0;
+volatile uint8_t wsFlag4 = 0;
+
+// This is the global callback function that handles ALL EXTI interrupts
+void HAL_GPIO_EXTI_Rising_Callback(uint16_t GPIO_Pin) {
+    if (GPIO_Pin == GPIO_PIN_0) {
+        wsFlag1 = 1;
+    }
+    if (GPIO_Pin == GPIO_PIN_5) {
+        wsFlag2 = 1;
+    }
+    if (GPIO_Pin == GPIO_PIN_10) {
+        wsFlag3 = 1;
+    }
+    if (GPIO_Pin == GPIO_PIN_11) {
+        wsFlag4 = 1;
+    }
+}
+
+
+volatile uint16_t wsTime1;
+volatile uint16_t wsTime2;
+volatile uint16_t wsTime3;
+volatile uint16_t wsTime4;
+
+void getWheelSpeed() {
+  
+}
+
 
 /* USER CODE END 0 */
 
