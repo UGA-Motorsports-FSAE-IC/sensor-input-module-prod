@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "fdcan.h"
+#include "iwdg.h"
 #include "spi.h"
 #include "tim.h"
 #include "usart.h"
@@ -28,6 +29,7 @@
 /* USER CODE BEGIN Includes */
 #include "stm32-mcp320x-reader/mcp320x.h"
 #include "stm32c0xx_hal_gpio.h"
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -61,6 +63,7 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
 
 void customprint(char * toprint) {
   HAL_UART_Transmit(&huart1, toprint, strlen(toprint), 100);
@@ -131,35 +134,38 @@ int getcommand(uint8_t * buffer, int maxlen) {
   return maxlen;
 }
 
-volatile uint8_t wsFlag1 = 0;
-volatile uint8_t wsFlag2 = 0;
-volatile uint8_t wsFlag3 = 0;
-volatile uint8_t wsFlag4 = 0;
+typedef struct {
+  volatile uint32_t delta;
+  volatile uint32_t lastTick;
+  volatile uint8_t flag;
+} Wheelspeed;
+
+Wheelspeed wheel1;
+Wheelspeed wheel2;
+Wheelspeed wheel3;
+Wheelspeed wheel4;
+char wheelspeedData[600] = {0};   
 
 // This is the global callback function that handles ALL EXTI interrupts
 void HAL_GPIO_EXTI_Rising_Callback(uint16_t GPIO_Pin) {
     if (GPIO_Pin == GPIO_PIN_0) {
-        wsFlag1 = 1;
+        wheel1.flag = 1;
     }
     if (GPIO_Pin == GPIO_PIN_5) {
-        wsFlag2 = 1;
+        wheel2.flag = 1;
     }
     if (GPIO_Pin == GPIO_PIN_10) {
-        wsFlag3 = 1;
+        wheel3.flag = 1;
     }
     if (GPIO_Pin == GPIO_PIN_11) {
-        wsFlag4 = 1;
+        wheel4.flag = 1;
     }
 }
 
-
-volatile uint16_t wsTime1;
-volatile uint16_t wsTime2;
-volatile uint16_t wsTime3;
-volatile uint16_t wsTime4;
-
-void getWheelSpeed() {
-  
+void getWheelSpeed(Wheelspeed * wheel) {
+  uint32_t currentTick = HAL_GetTick();
+  wheel->delta = currentTick - wheel->lastTick;
+  wheel->lastTick = currentTick;
 }
 
 
@@ -199,6 +205,7 @@ int main(void)
   MX_USART1_UART_Init();
   MX_TIM14_Init();
   MX_TIM15_Init();
+  MX_IWDG_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -375,8 +382,24 @@ int main(void)
       customprint("sent all sensors\n"); 
     }
 
-
-      
+    if (wheel1.flag) {
+      getWheelSpeed(&wheel1);
+      wheel1.flag = 0;
+    }
+    if (wheel2.flag) {
+      getWheelSpeed(&wheel2);
+      wheel2.flag = 0;
+    }
+    if (wheel3.flag) {
+      getWheelSpeed(&wheel3);
+      wheel3.flag = 0;
+    }
+    if (wheel4.flag) {
+      getWheelSpeed(&wheel4);
+      wheel4.flag = 0;
+    }
+    sprintf(wheelspeedData, "W1: %dlu, W2%lu, W3: %lu, W4: %lu\n", wheel1.delta, wheel2.delta, wheel3.delta, wheel4.delta);
+    HAL_UART_Transmit(&huart1, wheelspeedData, strlen(wheelspeedData), 100);
 
       /*
       char finalbuffer[600] = {0};      
@@ -406,10 +429,11 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_LSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSIDiv = RCC_HSI_DIV1;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
