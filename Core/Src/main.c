@@ -71,6 +71,7 @@ void customprint(char * toprint) {
 
 volatile uint8_t sendcan = 0;
 volatile uint8_t toggleled = 0;
+volatile uint8_t fastcan = 0;
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
   if (htim->Instance == TIM14) {
@@ -78,6 +79,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
   }
   if (htim->Instance == TIM15) {
     toggleled = 1;
+  }
+  if (htim->Instance == TIM17) {
+    fastcan = 1;
   }
 }
 
@@ -221,6 +225,7 @@ int main(void)
   MX_TIM14_Init();
   MX_TIM15_Init();
   MX_IWDG_Init();
+  MX_TIM17_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -349,6 +354,7 @@ int main(void)
 
   HAL_TIM_Base_Start_IT(&htim14); 
   HAL_TIM_Base_Start_IT(&htim15); 
+  HAL_TIM_Base_Start_IT(&htim17);
 
 
   MCP320X adc8to15 = {
@@ -404,10 +410,13 @@ int main(void)
       add_message_to_queue(&txheader6, (uint8_t *)(adcdata0to7+ 4));
       add_message_to_queue(&txheader5, (uint8_t *)adcdata0to7);
 
-      add_message_to_queue(&txheader8, (uint8_t *)wsData);
-
 
       customprint("sent all sensors\n"); 
+    }
+
+    if (fastcan) {
+      fastcan = 0;
+      add_message_to_queue(&txheader8, (uint8_t *)wsData);
     }
 
     if (wheel1.flag) {
