@@ -135,7 +135,10 @@ int getcommand(uint8_t * buffer, int maxlen) {
 }
 
 typedef struct {
+  volatile uint16_t speed;
   volatile uint32_t delta;
+  volatile uint32_t lastDelta;
+  volatile uint32_t midDelta;
   volatile uint32_t lastTick;
   volatile uint8_t flag;
 } Wheelspeed;
@@ -144,7 +147,8 @@ Wheelspeed wheel1;
 Wheelspeed wheel2;
 Wheelspeed wheel3;
 Wheelspeed wheel4;
-char wheelspeedData[600] = {0};   
+uint8_t wsData[8];  
+float milesPerNotch = 1.397222f / 12.0f / 5280.0f;
 
 // This is the global callback function that handles ALL EXTI interrupts
 void HAL_GPIO_EXTI_Rising_Callback(uint16_t GPIO_Pin) {
@@ -162,12 +166,23 @@ void HAL_GPIO_EXTI_Rising_Callback(uint16_t GPIO_Pin) {
     }
 }
 
+// Gets delta between last notch scene, and averages between the last three deltas.
 void getWheelSpeed(Wheelspeed * wheel) {
+  wheel->lastDelta = wheel->midDelta;
+  wheel->midDelta = wheel->delta;
+
   uint32_t currentTick = HAL_GetTick();
   wheel->delta = currentTick - wheel->lastTick;
   wheel->lastTick = currentTick;
-}
 
+  uint32_t average = (wheel->lastDelta + wheel->midDelta + wheel->delta) / 3;
+  if (average == 0) {
+    return;
+  }
+
+  float averageInSeconds = average / 1000.0f;
+  wheel->speed = (uint16_t) (((milesPerNotch / averageInSeconds) * 3600.0f) * 100.0f);
+}
 
 /* USER CODE END 0 */
 
@@ -239,6 +254,7 @@ int main(void)
   FDCAN_TxHeaderTypeDef txheader5;
   FDCAN_TxHeaderTypeDef txheader6;
   FDCAN_TxHeaderTypeDef txheader7;
+  FDCAN_TxHeaderTypeDef txheader8;
 
   FDCAN_FilterTypeDef canfilter;
 
@@ -305,6 +321,15 @@ int main(void)
   txheader7.BitRateSwitch = FDCAN_BRS_OFF;
   txheader7.FDFormat = FDCAN_CLASSIC_CAN;
   txheader7.MessageMarker = 0;
+
+  txheader8.Identifier = 217;
+  txheader8.IdType = FDCAN_STANDARD_ID;
+  txheader8.TxFrameType = FDCAN_DATA_FRAME;
+  txheader8.DataLength = FDCAN_DLC_BYTES_8;
+  txheader8.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+  txheader8.BitRateSwitch = FDCAN_BRS_OFF;
+  txheader8.FDFormat = FDCAN_CLASSIC_CAN;
+  txheader8.MessageMarker = 0;
   
   canfilter.IdType = FDCAN_STANDARD_ID;
   canfilter.FilterIndex = 0;
@@ -376,30 +401,37 @@ int main(void)
       add_message_to_queue(&txheader4, (uint8_t *)(adcdata16to23 + 4));
       
       read_all(&adc0to7, adcdata0to7);
-      add_message_to_queue( &txheader6, (uint8_t *)(adcdata0to7+ 4));
+      add_message_to_queue(&txheader6, (uint8_t *)(adcdata0to7+ 4));
       add_message_to_queue(&txheader5, (uint8_t *)adcdata0to7);
+
+      add_message_to_queue(&txheader8, (uint8_t *)wsData);
+
 
       customprint("sent all sensors\n"); 
     }
 
     if (wheel1.flag) {
       getWheelSpeed(&wheel1);
+      wsData[0] = wheel1.speed;
       wheel1.flag = 0;
     }
     if (wheel2.flag) {
       getWheelSpeed(&wheel2);
+      wsData[1] = wheel2.speed;
       wheel2.flag = 0;
     }
     if (wheel3.flag) {
       getWheelSpeed(&wheel3);
+      wsData[2] = wheel3.speed;
       wheel3.flag = 0;
     }
     if (wheel4.flag) {
       getWheelSpeed(&wheel4);
+      wsData[3] = wheel4.speed;
       wheel4.flag = 0;
     }
-    sprintf(wheelspeedData, "W1: %dlu, W2%lu, W3: %lu, W4: %lu\n", wheel1.delta, wheel2.delta, wheel3.delta, wheel4.delta);
-    HAL_UART_Transmit(&huart1, wheelspeedData, strlen(wheelspeedData), 100);
+    //sprintf(wheelspeedData, "W1: %dlu, W2%lu, W3: %lu, W4: %lu\n", wheel1.delta, wheel2.delta, wheel3.delta, wheel4.delta);
+    //HAL_UART_Transmit(&huart1, wheelspeedData, strlen(wheelspeedData), 100);
 
       /*
       char finalbuffer[600] = {0};      
