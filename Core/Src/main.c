@@ -135,7 +135,7 @@ int getcommand(uint8_t * buffer, int maxlen) {
 }
 
 typedef struct {
-  volatile uint16_t speed;
+  volatile float speed;
   volatile uint32_t delta;
   volatile uint32_t lastDelta;
   volatile uint32_t midDelta;
@@ -152,36 +152,36 @@ float milesPerNotch = 1.397222f / 12.0f / 5280.0f;
 
 // This is the global callback function that handles ALL EXTI interrupts
 void HAL_GPIO_EXTI_Rising_Callback(uint16_t GPIO_Pin) {
-    if (GPIO_Pin == GPIO_PIN_0) {
+    if (GPIO_Pin == WS1_Pin) {
         wheel1.flag = 1;
     }
-    if (GPIO_Pin == GPIO_PIN_5) {
+    if (GPIO_Pin == WS2_Pin) {
         wheel2.flag = 1;
     }
-    if (GPIO_Pin == GPIO_PIN_10) {
+    if (GPIO_Pin == WS3_Pin) {
         wheel3.flag = 1;
     }
-    if (GPIO_Pin == GPIO_PIN_11) {
+    if (GPIO_Pin == WS4_Pin) {
         wheel4.flag = 1;
     }
 }
 
 // Gets delta between last notch scene, and averages between the last three deltas.
 void getWheelSpeed(Wheelspeed * wheel) {
-  wheel->lastDelta = wheel->midDelta;
-  wheel->midDelta = wheel->delta;
+  //wheel->lastDelta = wheel->midDelta;
+  //wheel->midDelta = wheel->delta;
 
   uint32_t currentTick = HAL_GetTick();
   wheel->delta = currentTick - wheel->lastTick;
   wheel->lastTick = currentTick;
-
-  uint32_t average = (wheel->lastDelta + wheel->midDelta + wheel->delta) / 3;
+  /*
+  float average = (wheel->lastDelta + wheel->midDelta + wheel->delta) / 3.0f;
   if (average == 0) {
     return;
   }
-
-  float averageInSeconds = average / 1000.0f;
-  wheel->speed = (uint16_t) (((milesPerNotch / averageInSeconds) * 3600.0f) * 100.0f);
+  */
+  //float averageInSeconds = average / 1000.0f;
+  wheel->speed = ((milesPerNotch / (wheel->delta / 1000.0f)) * 3600.0f);
 }
 
 /* USER CODE END 0 */
@@ -322,7 +322,7 @@ int main(void)
   txheader7.FDFormat = FDCAN_CLASSIC_CAN;
   txheader7.MessageMarker = 0;
 
-  txheader8.Identifier = 217;
+  txheader8.Identifier = 190;
   txheader8.IdType = FDCAN_STANDARD_ID;
   txheader8.TxFrameType = FDCAN_DATA_FRAME;
   txheader8.DataLength = FDCAN_DLC_BYTES_8;
@@ -412,22 +412,26 @@ int main(void)
 
     if (wheel1.flag) {
       getWheelSpeed(&wheel1);
-      wsData[0] = wheel1.speed;
+      wsData[0] = (uint8_t) wheel1.speed;
+      wsData[4] = (uint8_t) (wheel1.speed - (((uint8_t) wheel1.speed) * 100));
       wheel1.flag = 0;
     }
     if (wheel2.flag) {
       getWheelSpeed(&wheel2);
-      wsData[1] = wheel2.speed;
+      wsData[1] = (uint8_t) wheel2.speed;
+      wsData[5] = (uint8_t) (wheel2.speed - (((uint8_t) wheel2.speed) * 100));
       wheel2.flag = 0;
     }
     if (wheel3.flag) {
       getWheelSpeed(&wheel3);
-      wsData[2] = wheel3.speed;
+      wsData[2] = (uint8_t) wheel3.speed;
+      wsData[6] = (uint8_t) (wheel3.speed - (((uint8_t) wheel3.speed) * 100));
       wheel3.flag = 0;
     }
     if (wheel4.flag) {
       getWheelSpeed(&wheel4);
-      wsData[3] = wheel4.speed;
+      wsData[3] = (uint8_t) wheel4.speed;
+      wsData[7] = (uint8_t) (wheel4.speed - (((uint8_t) wheel4.speed) * 100));
       wheel4.flag = 0;
     }
     //sprintf(wheelspeedData, "W1: %dlu, W2%lu, W3: %lu, W4: %lu\n", wheel1.delta, wheel2.delta, wheel3.delta, wheel4.delta);
