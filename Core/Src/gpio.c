@@ -38,9 +38,6 @@
         * Output
         * EVENT_OUT
         * EXTI
-     PA0   ------> S_TIM2_CH1
-     PB10   ------> S_TIM2_CH3
-     PB11   ------> S_TIM2_CH4
      PA8   ------> S_TIM1_CH1
      PB6   ------> S_TIM1_CH2
 */
@@ -58,13 +55,17 @@ void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_9, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : PA0 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF3_TIM2;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  /*Configure GPIO pin : WS1_Pin */
+  GPIO_InitStruct.Pin = WS1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(WS1_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : WS2_Pin */
+  GPIO_InitStruct.Pin = WS2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(WS2_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PB0 PB1 PB2 PB9 */
   GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_9;
@@ -73,12 +74,10 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PB10 PB11 */
-  GPIO_InitStruct.Pin = GPIO_PIN_10|GPIO_PIN_11;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF3_TIM2;
+  /*Configure GPIO pins : WS3_Pin WS4_Pin */
+  GPIO_InitStruct.Pin = WS3_Pin|WS4_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PA8 */
@@ -96,6 +95,10 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.Alternate = GPIO_AF11_TIM1;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI4_15_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI4_15_IRQn);
 
 }
 

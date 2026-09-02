@@ -29,6 +29,7 @@
 /* USER CODE BEGIN Includes */
 #include "stm32-mcp320x-reader/mcp320x.h"
 #include "stm32c0xx_hal_gpio.h"
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -48,8 +49,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-COM_InitTypeDef BspCOMInit;
-
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -63,12 +62,14 @@ void SystemClock_Config(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+
 void customprint(char * toprint) {
   HAL_UART_Transmit(&huart1, toprint, strlen(toprint), 100);
 }
 
 volatile uint8_t sendcan = 0;
 volatile uint8_t toggleled = 0;
+volatile uint8_t fastcan = 0;
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
   if (htim->Instance == TIM14) {
@@ -76,6 +77,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
   }
   if (htim->Instance == TIM15) {
     toggleled = 1;
+  }
+  if (htim->Instance == TIM17) {
+    fastcan = 1;
   }
 }
 
@@ -132,6 +136,55 @@ int getcommand(uint8_t * buffer, int maxlen) {
   return maxlen;
 }
 
+typedef struct {
+  volatile float speed;
+  volatile uint32_t delta;
+  volatile uint32_t lastDelta;
+  volatile uint32_t midDelta;
+  volatile uint32_t lastTick;
+  volatile uint8_t flag;
+} Wheelspeed;
+
+Wheelspeed wheel1;
+Wheelspeed wheel2;
+Wheelspeed wheel3;
+Wheelspeed wheel4;
+uint8_t wsData[8];  
+float milesPerNotch = 1.397222f / 12.0f / 5280.0f;
+
+// This is the global callback function that handles ALL EXTI interrupts
+void HAL_GPIO_EXTI_Rising_Callback(uint16_t GPIO_Pin) {
+    if (GPIO_Pin == WS1_Pin) {
+        wheel1.flag = 1;
+    }
+    if (GPIO_Pin == WS2_Pin) {
+        wheel2.flag = 1;
+    }
+    if (GPIO_Pin == WS3_Pin) {
+        wheel3.flag = 1;
+    }
+    if (GPIO_Pin == WS4_Pin) {
+        wheel4.flag = 1;
+    }
+}
+
+// Gets delta between last notch scene, and averages between the last three deltas.
+void getWheelSpeed(Wheelspeed * wheel) {
+  //wheel->lastDelta = wheel->midDelta;
+  //wheel->midDelta = wheel->delta;
+
+  uint32_t currentTick = HAL_GetTick();
+  wheel->delta = currentTick - wheel->lastTick;
+  wheel->lastTick = currentTick;
+  /*
+  float average = (wheel->lastDelta + wheel->midDelta + wheel->delta) / 3.0f;
+  if (average == 0) {
+    return;
+  }
+  */
+  //float averageInSeconds = average / 1000.0f;
+  wheel->speed = ((milesPerNotch / (wheel->delta / 1000.0f)) * 3600.0f);
+}
 
 /* USER CODE END 0 */
 
@@ -170,27 +223,13 @@ int main(void)
   MX_TIM14_Init();
   MX_TIM15_Init();
   MX_IWDG_Init();
+<<<<<<< HEAD
+=======
+  MX_TIM17_Init();
+>>>>>>> ws
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
-
-  /* Initialize leds */
-  BSP_LED_Init(LED_GREEN);
-  BSP_LED_Init(LED_BLUE);
-
-  /* Initialize USER push-button, will be used to trigger an interrupt each time it's pressed.*/
-  BSP_PB_Init(BUTTON_USER, BUTTON_MODE_EXTI);
-
-  /* Initialize COM1 port (115200, 8 bits (7-bit data + 1 stop bit), no parity */
-  BspCOMInit.BaudRate   = 115200;
-  BspCOMInit.WordLength = COM_WORDLENGTH_8B;
-  BspCOMInit.StopBits   = COM_STOPBITS_1;
-  BspCOMInit.Parity     = COM_PARITY_NONE;
-  BspCOMInit.HwFlowCtl  = COM_HWCONTROL_NONE;
-  if (BSP_COM_Init(COM1, &BspCOMInit) != BSP_ERROR_NONE)
-  {
-    Error_Handler();
-  }
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -203,6 +242,7 @@ int main(void)
   FDCAN_TxHeaderTypeDef txheader5;
   FDCAN_TxHeaderTypeDef txheader6;
   FDCAN_TxHeaderTypeDef txheader7;
+  FDCAN_TxHeaderTypeDef txheader8;
 
   FDCAN_FilterTypeDef canfilter;
 
@@ -269,6 +309,15 @@ int main(void)
   txheader7.BitRateSwitch = FDCAN_BRS_OFF;
   txheader7.FDFormat = FDCAN_CLASSIC_CAN;
   txheader7.MessageMarker = 0;
+
+  txheader8.Identifier = 190;
+  txheader8.IdType = FDCAN_STANDARD_ID;
+  txheader8.TxFrameType = FDCAN_DATA_FRAME;
+  txheader8.DataLength = FDCAN_DLC_BYTES_8;
+  txheader8.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+  txheader8.BitRateSwitch = FDCAN_BRS_OFF;
+  txheader8.FDFormat = FDCAN_CLASSIC_CAN;
+  txheader8.MessageMarker = 0;
   
   canfilter.IdType = FDCAN_STANDARD_ID;
   canfilter.FilterIndex = 0;
@@ -288,6 +337,7 @@ int main(void)
 
   HAL_TIM_Base_Start_IT(&htim14); 
   HAL_TIM_Base_Start_IT(&htim15); 
+  HAL_TIM_Base_Start_IT(&htim17);
 
 
   MCP320X adc8to15 = {
@@ -340,14 +390,46 @@ int main(void)
       add_message_to_queue(&txheader4, (uint8_t *)(adcdata16to23 + 4));
       
       read_all(&adc0to7, adcdata0to7);
-      add_message_to_queue( &txheader6, (uint8_t *)(adcdata0to7+ 4));
+      add_message_to_queue(&txheader6, (uint8_t *)(adcdata0to7+ 4));
       add_message_to_queue(&txheader5, (uint8_t *)adcdata0to7);
 
       customprint("sent all sensors\n"); 
     }
 
+    if (fastcan) {
+      fastcan = 0;
+      add_message_to_queue(&txheader8, (uint8_t *)wsData);
+    }
 
-      
+    if (wheel1.flag) {
+      getWheelSpeed(&wheel1);
+      wsData[0] = (uint8_t) wheel1.speed;
+      wsData[1] = (uint8_t)((wheel1.speed - (uint8_t)wheel1.speed) * 100);
+      wheel1.flag = 0;
+    }
+    if (wheel2.flag) {
+      getWheelSpeed(&wheel2);
+      wsData[2] = (uint8_t) wheel2.speed;
+      wsData[3] = (uint8_t)((wheel2.speed - (uint8_t)wheel2.speed) * 100);
+      wheel2.flag = 0;
+    }
+    HAL_IWDG_Refresh(&hiwdg);
+    if (wheel3.flag) {
+      getWheelSpeed(&wheel3);
+      wsData[4] = (uint8_t) wheel3.speed;
+      wsData[5] = (uint8_t)((wheel3.speed - (uint8_t)wheel3.speed) * 100);
+
+      wheel3.flag = 0;
+    }
+    if (wheel4.flag) {
+      getWheelSpeed(&wheel4);
+      wsData[6] = (uint8_t) wheel4.speed;
+      wsData[7] = (uint8_t)((wheel4.speed - (uint8_t)wheel4.speed) * 100);
+
+      wheel4.flag = 0;
+    }
+    //sprintf(wheelspeedData, "W1: %dlu, W2%lu, W3: %lu, W4: %lu\n", wheel1.delta, wheel2.delta, wheel3.delta, wheel4.delta);
+    //HAL_UART_Transmit(&huart1, wheelspeedData, strlen(wheelspeedData), 100);
 
       /*
       char finalbuffer[600] = {0};      
