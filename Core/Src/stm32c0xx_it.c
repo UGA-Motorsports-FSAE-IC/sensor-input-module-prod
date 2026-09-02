@@ -57,6 +57,7 @@
 /* External variables --------------------------------------------------------*/
 extern TIM_HandleTypeDef htim14;
 extern TIM_HandleTypeDef htim15;
+extern TIM_HandleTypeDef htim17;
 extern UART_HandleTypeDef huart1;
 /* USER CODE BEGIN EV */
 
@@ -153,7 +154,6 @@ void EXTI4_15_IRQHandler(void)
   HAL_GPIO_EXTI_IRQHandler(WS2_Pin);
   HAL_GPIO_EXTI_IRQHandler(WS3_Pin);
   HAL_GPIO_EXTI_IRQHandler(WS4_Pin);
-  BSP_PB_IRQHandler(BUTTON_USER);
   /* USER CODE BEGIN EXTI4_15_IRQn 1 */
 
   /* USER CODE END EXTI4_15_IRQn 1 */
@@ -185,6 +185,20 @@ void TIM15_IRQHandler(void)
   /* USER CODE BEGIN TIM15_IRQn 1 */
 
   /* USER CODE END TIM15_IRQn 1 */
+}
+
+/**
+  * @brief This function handles TIM17 global interrupt.
+  */
+void TIM17_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM17_IRQn 0 */
+
+  /* USER CODE END TIM17_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim17);
+  /* USER CODE BEGIN TIM17_IRQn 1 */
+
+  /* USER CODE END TIM17_IRQn 1 */
 }
 
 /**

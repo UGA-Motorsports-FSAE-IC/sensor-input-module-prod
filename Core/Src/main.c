@@ -49,8 +49,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-COM_InitTypeDef BspCOMInit;
-
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -230,24 +228,6 @@ int main(void)
 
   /* USER CODE END 2 */
 
-  /* Initialize leds */
-  BSP_LED_Init(LED_GREEN);
-  BSP_LED_Init(LED_BLUE);
-
-  /* Initialize USER push-button, will be used to trigger an interrupt each time it's pressed.*/
-  BSP_PB_Init(BUTTON_USER, BUTTON_MODE_EXTI);
-
-  /* Initialize COM1 port (115200, 8 bits (7-bit data + 1 stop bit), no parity */
-  BspCOMInit.BaudRate   = 115200;
-  BspCOMInit.WordLength = COM_WORDLENGTH_8B;
-  BspCOMInit.StopBits   = COM_STOPBITS_1;
-  BspCOMInit.Parity     = COM_PARITY_NONE;
-  BspCOMInit.HwFlowCtl  = COM_HWCONTROL_NONE;
-  if (BSP_COM_Init(COM1, &BspCOMInit) != BSP_ERROR_NONE)
-  {
-    Error_Handler();
-  }
-
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
@@ -410,7 +390,6 @@ int main(void)
       add_message_to_queue(&txheader6, (uint8_t *)(adcdata0to7+ 4));
       add_message_to_queue(&txheader5, (uint8_t *)adcdata0to7);
 
-
       customprint("sent all sensors\n"); 
     }
 
@@ -422,25 +401,28 @@ int main(void)
     if (wheel1.flag) {
       getWheelSpeed(&wheel1);
       wsData[0] = (uint8_t) wheel1.speed;
-      wsData[4] = (uint8_t) (wheel1.speed - (((uint8_t) wheel1.speed) * 100));
+      wsData[1] = (uint8_t)((wheel1.speed - (uint8_t)wheel1.speed) * 100);
       wheel1.flag = 0;
     }
     if (wheel2.flag) {
       getWheelSpeed(&wheel2);
-      wsData[1] = (uint8_t) wheel2.speed;
-      wsData[5] = (uint8_t) (wheel2.speed - (((uint8_t) wheel2.speed) * 100));
+      wsData[2] = (uint8_t) wheel2.speed;
+      wsData[3] = (uint8_t)((wheel2.speed - (uint8_t)wheel2.speed) * 100);
       wheel2.flag = 0;
     }
+    HAL_IWDG_Refresh(&hiwdg);
     if (wheel3.flag) {
       getWheelSpeed(&wheel3);
-      wsData[2] = (uint8_t) wheel3.speed;
-      wsData[6] = (uint8_t) (wheel3.speed - (((uint8_t) wheel3.speed) * 100));
+      wsData[4] = (uint8_t) wheel3.speed;
+      wsData[5] = (uint8_t)((wheel3.speed - (uint8_t)wheel3.speed) * 100);
+
       wheel3.flag = 0;
     }
     if (wheel4.flag) {
       getWheelSpeed(&wheel4);
-      wsData[3] = (uint8_t) wheel4.speed;
-      wsData[7] = (uint8_t) (wheel4.speed - (((uint8_t) wheel4.speed) * 100));
+      wsData[6] = (uint8_t) wheel4.speed;
+      wsData[7] = (uint8_t)((wheel4.speed - (uint8_t)wheel4.speed) * 100);
+
       wheel4.flag = 0;
     }
     //sprintf(wheelspeedData, "W1: %dlu, W2%lu, W3: %lu, W4: %lu\n", wheel1.delta, wheel2.delta, wheel3.delta, wheel4.delta);
