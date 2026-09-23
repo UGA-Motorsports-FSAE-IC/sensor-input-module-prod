@@ -137,7 +137,7 @@ int getcommand(uint8_t * buffer, int maxlen) {
 
 typedef struct {
   volatile float speed;
-  volatile unint32_t currentTick;
+  volatile uint32_t currentTick;
   volatile uint32_t delta;
   volatile uint32_t lastDelta;
   volatile uint32_t midDelta;
@@ -176,8 +176,26 @@ void getWheelSpeed(Wheelspeed * wheel) {
   */
   //float averageInSeconds = average / 1000.0f;
   wheel->delta = wheel->currentTick - wheel->lastTick;
-  wheel->lastTick = wheel->currentTick
+  wheel->lastTick = wheel->currentTick;
   wheel->speed = ((milesPerNotch / (wheel->delta / 1000000.0f)) * 3600.0f);
+}
+
+void calculateWS() {
+    getWheelSpeed(&wheel1);
+    wsData[0] = (uint8_t) wheel1.speed;
+    wsData[1] = (uint8_t)((wheel1.speed - (uint8_t)wheel1.speed) * 100);
+
+    getWheelSpeed(&wheel2);
+    wsData[2] = (uint8_t) wheel2.speed;
+    wsData[3] = (uint8_t)((wheel2.speed - (uint8_t)wheel2.speed) * 100);
+
+    getWheelSpeed(&wheel3);
+    wsData[4] = (uint8_t) wheel3.speed;
+    wsData[5] = (uint8_t)((wheel3.speed - (uint8_t)wheel3.speed) * 100);
+
+    getWheelSpeed(&wheel4);
+    wsData[6] = (uint8_t) wheel4.speed;
+    wsData[7] = (uint8_t)((wheel4.speed - (uint8_t)wheel4.speed) * 100);
 }
 
 FDCAN_RxHeaderTypeDef rxHeader;
@@ -451,34 +469,9 @@ int main(void)
       add_message_to_queue(&txheader8, (uint8_t *)wsData);
     }
 
-
-    if (wheel1.flag) {
-      getWheelSpeed(&wheel1);
-      wsData[0] = (uint8_t) wheel1.speed;
-      wsData[1] = (uint8_t)((wheel1.speed - (uint8_t)wheel1.speed) * 100);
-      wheel1.flag = 0;
-    }
-    if (wheel2.flag) {
-      getWheelSpeed(&wheel2);
-      wsData[2] = (uint8_t) wheel2.speed;
-      wsData[3] = (uint8_t)((wheel2.speed - (uint8_t)wheel2.speed) * 100);
-      wheel2.flag = 0;
-    }
     HAL_IWDG_Refresh(&hiwdg);
-    if (wheel3.flag) {
-      getWheelSpeed(&wheel3);
-      wsData[4] = (uint8_t) wheel3.speed;
-      wsData[5] = (uint8_t)((wheel3.speed - (uint8_t)wheel3.speed) * 100);
 
-      wheel3.flag = 0;
-    }
-    if (wheel4.flag) {
-      getWheelSpeed(&wheel4);
-      wsData[6] = (uint8_t) wheel4.speed;
-      wsData[7] = (uint8_t)((wheel4.speed - (uint8_t)wheel4.speed) * 100);
-
-      wheel4.flag = 0;
-    }
+    calculateWS();
     //sprintf(wheelspeedData, "W1: %dlu, W2%lu, W3: %lu, W4: %lu\n", wheel1.delta, wheel2.delta, wheel3.delta, wheel4.delta);
     //HAL_UART_Transmit(&huart1, wheelspeedData, strlen(wheelspeedData), 100);
 
