@@ -69,13 +69,10 @@ void Error_Handler(void);
 #define WS1_GPIO_Port GPIOA
 #define WS2_Pin GPIO_PIN_5
 #define WS2_GPIO_Port GPIOC
-#define WS2_EXTI_IRQn EXTI4_15_IRQn
 #define WS3_Pin GPIO_PIN_10
 #define WS3_GPIO_Port GPIOB
-#define WS3_EXTI_IRQn EXTI4_15_IRQn
 #define WS4_Pin GPIO_PIN_11
 #define WS4_GPIO_Port GPIOB
-#define WS4_EXTI_IRQn EXTI4_15_IRQn
 #define SWDIO_Pin GPIO_PIN_13
 #define SWDIO_GPIO_Port GPIOA
 #define SWCLK_Pin GPIO_PIN_14
