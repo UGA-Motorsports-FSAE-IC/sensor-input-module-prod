@@ -139,8 +139,8 @@ typedef struct {
   volatile float speed;
   volatile uint32_t currentTick;
   volatile uint32_t delta;
-  volatile uint32_t lastDelta;
-  volatile uint32_t midDelta;
+  //volatile uint32_t lastDelta;
+  //volatile uint32_t midDelta;
   volatile uint32_t lastTick;
 } Wheelspeed;
 
