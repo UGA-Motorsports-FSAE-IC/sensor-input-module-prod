@@ -177,7 +177,7 @@ void getWheelSpeed(Wheelspeed * wheel) {
   //float averageInSeconds = average / 1000.0f;
   wheel->delta = wheel->currentTick - wheel->lastTick;
   wheel->lastTick = wheel->currentTick;
-  wheel->speed = ((milesPerNotch / (wheel->delta / 1000000.0f)) * 3600.0f);
+  wheel->speed = ((milesPerNotch / ((float) wheel->delta / 1000.0f)) * 3600.0f);
 }
 
 void calculateWS() {
