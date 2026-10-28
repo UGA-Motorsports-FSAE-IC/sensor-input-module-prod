@@ -223,10 +223,7 @@ int main(void)
   MX_TIM14_Init();
   MX_TIM15_Init();
   MX_IWDG_Init();
-<<<<<<< HEAD
-=======
   MX_TIM17_Init();
->>>>>>> ws
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
