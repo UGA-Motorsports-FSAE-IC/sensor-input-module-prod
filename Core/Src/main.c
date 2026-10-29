@@ -63,6 +63,19 @@ void SystemClock_Config(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+typedef struct {
+  volatile float speed;
+  volatile uint32_t currentTick;
+  volatile uint32_t delta;
+  //volatile uint32_t lastDelta;
+  //volatile uint32_t midDelta;
+  volatile uint32_t lastTick;
+} Wheelspeed;
+
+Wheelspeed wheels[4];
+uint8_t wsData[16];
+float milesPerNotch = 1.397222f / 12.0f / 5280.0f;
+
 volatile uint8_t sendcan = 0;
 volatile uint8_t toggleled = 0;
 volatile uint8_t fastcan = 0;
@@ -134,33 +147,16 @@ int getcommand(uint8_t * buffer, int maxlen) {
   return maxlen;
 }
 
-
-typedef struct {
-  volatile float speed;
-  volatile uint32_t currentTick;
-  volatile uint32_t delta;
-  //volatile uint32_t lastDelta;
-  //volatile uint32_t midDelta;
-  volatile uint32_t lastTick;
-} Wheelspeed;
-
-Wheelspeed wheel1;
-Wheelspeed wheel2;
-Wheelspeed wheel3;
-Wheelspeed wheel4;
-uint8_t wsData[8];  
-float milesPerNotch = 1.397222f / 12.0f / 5280.0f;
-
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
     if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) {
-      wheel1.currentTick = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+      wheels[0].currentTick = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
     } else if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) {
-      wheel2.currentTick = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_2);
+      wheels[1].currentTick = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_2);
     } else if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_3) {
-      wheel3.currentTick = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_3);
-    } else {
-      wheel4.currentTick = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_4);
+      wheels[2].currentTick = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_3);
+    } else if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_4) {
+      wheels[3].currentTick = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_4);
     }
 }
 
@@ -176,26 +172,18 @@ void getWheelSpeed(Wheelspeed * wheel) {
   */
   //float averageInSeconds = average / 1000.0f;
   wheel->delta = wheel->currentTick - wheel->lastTick;
+  if (wheel->delta == 0) {
+    return;
+  }
   wheel->lastTick = wheel->currentTick;
   wheel->speed = ((milesPerNotch / ((float) wheel->delta / 1000.0f)) * 3600.0f);
 }
 
 void calculateWS() {
-    getWheelSpeed(&wheel1);
-    wsData[0] = (uint8_t) wheel1.speed;
-    wsData[1] = (uint8_t)((wheel1.speed - (uint8_t)wheel1.speed) * 100);
-
-    getWheelSpeed(&wheel2);
-    wsData[2] = (uint8_t) wheel2.speed;
-    wsData[3] = (uint8_t)((wheel2.speed - (uint8_t)wheel2.speed) * 100);
-
-    getWheelSpeed(&wheel3);
-    wsData[4] = (uint8_t) wheel3.speed;
-    wsData[5] = (uint8_t)((wheel3.speed - (uint8_t)wheel3.speed) * 100);
-
-    getWheelSpeed(&wheel4);
-    wsData[6] = (uint8_t) wheel4.speed;
-    wsData[7] = (uint8_t)((wheel4.speed - (uint8_t)wheel4.speed) * 100);
+    for (int i = 0; i < 4; i++) {
+      getWheelSpeed(&wheels[i]);
+      memcpy(&wsData[i * sizeof(float)], &wheels[i].speed, sizeof(float));
+    }
 }
 
 FDCAN_RxHeaderTypeDef rxHeader;
@@ -268,7 +256,7 @@ int main(void)
   FDCAN_TxHeaderTypeDef txheader5;
   FDCAN_TxHeaderTypeDef txheader6;
   FDCAN_TxHeaderTypeDef txheader7;
-  FDCAN_TxHeaderTypeDef txheader8;
+  FDCAN_TxHeaderTypeDef txheaderWS;
   FDCAN_TxHeaderTypeDef txheader9;
   FDCAN_TxHeaderTypeDef txheader10;
 
@@ -338,14 +326,14 @@ int main(void)
   txheader7.FDFormat = FDCAN_CLASSIC_CAN;
   txheader7.MessageMarker = 0;
 
-  txheader8.Identifier = 190;
-  txheader8.IdType = FDCAN_STANDARD_ID;
-  txheader8.TxFrameType = FDCAN_DATA_FRAME;
-  txheader8.DataLength = FDCAN_DLC_BYTES_8;
-  txheader8.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
-  txheader8.BitRateSwitch = FDCAN_BRS_OFF;
-  txheader8.FDFormat = FDCAN_CLASSIC_CAN;
-  txheader8.MessageMarker = 0;
+  txheaderWS.Identifier = 190;
+  txheaderWS.IdType = FDCAN_STANDARD_ID;
+  txheaderWS.TxFrameType = FDCAN_DATA_FRAME;
+  txheaderWS.DataLength = FDCAN_DLC_BYTES_16;
+  txheaderWS.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+  txheaderWS.BitRateSwitch = FDCAN_BRS_OFF;
+  txheaderWS.FDFormat = FDCAN_FD_CAN;
+  txheaderWS.MessageMarker = 0;
 
   txheader9.Identifier = 0x140810FF;
   txheader9.IdType = FDCAN_EXTENDED_ID;
@@ -388,6 +376,11 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim14); 
   HAL_TIM_Base_Start_IT(&htim15); 
   HAL_TIM_Base_Start_IT(&htim17);
+
+  HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
+  HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_2);
+  HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_3);
+  HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_4);
 
 
   MCP320X adc8to15 = {
@@ -466,7 +459,7 @@ int main(void)
 
     if (fastcan) {
       fastcan = 0;
-      add_message_to_queue(&txheader8, (uint8_t *)wsData);
+      add_message_to_queue(&txheaderWS, wsData);
     }
 
     HAL_IWDG_Refresh(&hiwdg);
