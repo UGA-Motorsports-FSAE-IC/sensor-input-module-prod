@@ -75,7 +75,8 @@
   FDCAN_TxHeaderTypeDef txheader5;
   FDCAN_TxHeaderTypeDef txheader6;
   FDCAN_TxHeaderTypeDef txheader7;
-  FDCAN_TxHeaderTypeDef txheader8;
+  FDCAN_TxHeaderTypeDef txheaderWS1;
+  FDCAN_TxHeaderTypeDef txheaderWS2;
   FDCAN_TxHeaderTypeDef txheader9;
   FDCAN_TxHeaderTypeDef txheader10;
 
@@ -143,14 +144,23 @@
   txheader7.FDFormat = FDCAN_CLASSIC_CAN;
   txheader7.MessageMarker = 0;
 
-  txheader8.Identifier = 190;
-  txheader8.IdType = FDCAN_STANDARD_ID;
-  txheader8.TxFrameType = FDCAN_DATA_FRAME;
-  txheader8.DataLength = FDCAN_DLC_BYTES_8;
-  txheader8.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
-  txheader8.BitRateSwitch = FDCAN_BRS_OFF;
-  txheader8.FDFormat = FDCAN_CLASSIC_CAN;
-  txheader8.MessageMarker = 0;
+  txheaderWS1.Identifier = 190;
+  txheaderWS1.IdType = FDCAN_STANDARD_ID;
+  txheaderWS1.TxFrameType = FDCAN_DATA_FRAME;
+  txheaderWS1.DataLength = FDCAN_DLC_BYTES_8;
+  txheaderWS1.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+  txheaderWS1.BitRateSwitch = FDCAN_BRS_OFF;
+  txheaderWS1.FDFormat = FDCAN_CLASSIC_CAN;
+  txheaderWS1.MessageMarker = 0;
+
+  txheaderWS2.Identifier = 191;
+  txheaderWS2.IdType = FDCAN_STANDARD_ID;
+  txheaderWS2.TxFrameType = FDCAN_DATA_FRAME;
+  txheaderWS2.DataLength = FDCAN_DLC_BYTES_8;
+  txheaderWS2.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+  txheaderWS2.BitRateSwitch = FDCAN_BRS_OFF;
+  txheaderWS2.FDFormat = FDCAN_CLASSIC_CAN;
+  txheaderWS2.MessageMarker = 0;
 
   txheader9.Identifier = 0x140810FF;
   txheader9.IdType = FDCAN_EXTENDED_ID;
