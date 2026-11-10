@@ -70,10 +70,12 @@ typedef struct {
   //volatile uint32_t lastDelta;
   //volatile uint32_t midDelta;
   volatile uint32_t lastTick;
+  uint8_t id;
 } Wheelspeed;
 
 Wheelspeed wheels[4];
-uint8_t wsData[16];
+uint8_t wsData1[8];
+uint8_t wsData2[8];
 float milesPerNotch = 1.397222f / 12.0f / 5280.0f;
 
 volatile uint8_t sendcan = 0;
@@ -105,47 +107,6 @@ void add_message_to_queue(FDCAN_TxHeaderTypeDef * header, uint8_t * datatosend) 
   }
 }
 
-uint8_t onebyte;
-volatile uint8_t gotcommand = 0;
-volatile int fulllen = 40;
-char intbuffer[40] = {0};
-
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-  intbuffer[40 - fulllen] = onebyte;
-  if (onebyte == '!') {
-    intbuffer[40 - fulllen] = '\0';
-    gotcommand = 1;
-    return;
-  } else {
-    fulllen--;
-  }
-  
-  HAL_UART_Receive_IT(&huart1, &onebyte, 1);
-}
-
-void customprint(char * toprint) {
-  HAL_UART_Transmit(&huart1, toprint, strlen(toprint), 100);
-}
-
-char buffer[40] = {0};
-
-int getcommand(uint8_t * buffer, int maxlen) {
-  memset(buffer, 0, maxlen);
-  uint8_t singlebyte = 0;
-  while (maxlen) {
-    HAL_UART_Receive(&huart1, &singlebyte, 1, 0xFFFF);
-    buffer[40 - maxlen] = singlebyte;
-
-    if (singlebyte == '!') {
-      buffer[40 - maxlen] = '\0';
-      break;
-    }
-
-    maxlen--;
-  }
-  return maxlen;
-}
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
@@ -182,7 +143,11 @@ void getWheelSpeed(Wheelspeed * wheel) {
 void calculateWS() {
     for (int i = 0; i < 4; i++) {
       getWheelSpeed(&wheels[i]);
-      memcpy(&wsData[i * sizeof(float)], &wheels[i].speed, sizeof(float));
+      if (i < 2) {
+        memcpy(&wsData1[i * sizeof(float)], &wheels[i].speed, sizeof(float));
+      } else {
+        memcpy(&wsData2[i * sizeof(float)], &wheels[i].speed, sizeof(float));
+      }
     }
 }
 
@@ -326,14 +291,23 @@ int main(void)
   txheader7.FDFormat = FDCAN_CLASSIC_CAN;
   txheader7.MessageMarker = 0;
 
-  txheaderWS.Identifier = 190;
-  txheaderWS.IdType = FDCAN_STANDARD_ID;
-  txheaderWS.TxFrameType = FDCAN_DATA_FRAME;
-  txheaderWS.DataLength = FDCAN_DLC_BYTES_16;
-  txheaderWS.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
-  txheaderWS.BitRateSwitch = FDCAN_BRS_OFF;
-  txheaderWS.FDFormat = FDCAN_FD_CAN;
-  txheaderWS.MessageMarker = 0;
+  txheaderWS1.Identifier = 190;
+  txheaderWS1.IdType = FDCAN_STANDARD_ID;
+  txheaderWS1.TxFrameType = FDCAN_DATA_FRAME;
+  txheaderWS1.DataLength = FDCAN_DLC_BYTES_8;
+  txheaderWS1.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+  txheaderWS1.BitRateSwitch = FDCAN_BRS_OFF;
+  txheaderWS1.FDFormat = FDCAN_CLASSIC_CAN;
+  txheaderWS1.MessageMarker = 0;
+
+  txheaderWS2.Identifier = 191;
+  txheaderWS2.IdType = FDCAN_STANDARD_ID;
+  txheaderWS2.TxFrameType = FDCAN_DATA_FRAME;
+  txheaderWS2.DataLength = FDCAN_DLC_BYTES_8;
+  txheaderWS2.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+  txheaderWS2.BitRateSwitch = FDCAN_BRS_OFF;
+  txheaderWS2.FDFormat = FDCAN_CLASSIC_CAN;
+  txheaderWS2.MessageMarker = 0;
 
   txheader9.Identifier = 0x140810FF;
   txheader9.IdType = FDCAN_EXTENDED_ID;
@@ -459,21 +433,13 @@ int main(void)
 
     if (fastcan) {
       fastcan = 0;
-      add_message_to_queue(&txheaderWS, wsData);
+      add_message_to_queue(&txheaderWS1, wsData1);
+      add_message_to_queue(&txheaderWS2, wsData2);
     }
 
     HAL_IWDG_Refresh(&hiwdg);
 
     calculateWS();
-    //sprintf(wheelspeedData, "W1: %dlu, W2%lu, W3: %lu, W4: %lu\n", wheel1.delta, wheel2.delta, wheel3.delta, wheel4.delta);
-    //HAL_UART_Transmit(&huart1, wheelspeedData, strlen(wheelspeedData), 100);
-
-      /*
-      char finalbuffer[600] = {0};      
-      sprintf(finalbuffer, "%u, %u, %u, %u, %u, %u, %u, %u\n", adcdata8to15[0], adcdata8to15[1], adcdata8to15[2], adcdata8to15[3], adcdata8to15[4], adcdata8to15[5], adcdata8to15[6], adcdata8to15[7]);
-      HAL_UART_Transmit(&huart1, finalbuffer, strlen(finalbuffer), 100);
-      */
-
 
     /* USER CODE END WHILE */
 
