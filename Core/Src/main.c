@@ -70,7 +70,6 @@ typedef struct {
   //volatile uint32_t lastDelta;
   //volatile uint32_t midDelta;
   volatile uint32_t lastTick;
-  uint8_t id;
 } Wheelspeed;
 
 Wheelspeed wheels[4];
