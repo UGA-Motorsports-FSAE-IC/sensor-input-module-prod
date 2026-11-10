@@ -71,6 +71,15 @@ void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
+typedef struct {
+    volatile float speed;
+    volatile uint32_t currentTick;
+    volatile uint32_t delta;
+    //volatile uint32_t lastDelta;
+    //volatile uint32_t midDelta;
+    volatile uint32_t lastTick;
+} Wheelspeed;
+
 void getWheelSpeed(Wheelspeed * wheel);
 /* USER CODE END Application */
 

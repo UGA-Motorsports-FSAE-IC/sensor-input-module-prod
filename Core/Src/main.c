@@ -64,44 +64,6 @@ void MX_FREERTOS_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-volatile uint8_t sendcan = 0;
-volatile uint8_t toggleled = 0;
-volatile uint8_t fastcan = 0;
-
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-  if (htim->Instance == TIM14) {
-    sendcan = 1;
-  }
-  if (htim->Instance == TIM17) {
-    fastcan = 1;
-  }
-}
-
-void add_message_to_queue(FDCAN_TxHeaderTypeDef * header, uint8_t * datatosend) {
-  while (HAL_FDCAN_GetTxFifoFreeLevel(&hfdcan1) == 0) {
-    continue;
-  }
-  
-  HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, header, (const uint8_t *)datatosend);
-}
-
-
-
-FDCAN_RxHeaderTypeDef rxHeader;
-uint8_t rxData[8];
-uint32_t id;
-volatile uint8_t dataRecieved = 0;
-void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs) {
-  if ((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != RESET) {
-
-    HAL_FDCAN_GetRxMessage(&hfdcan1, FDCAN_RX_FIFO0, &rxHeader, rxData);
-
-    id = rxHeader.Identifier;
-    dataRecieved = 1;
-  }
-}
-
-
 /* USER CODE END 0 */
 
 /**

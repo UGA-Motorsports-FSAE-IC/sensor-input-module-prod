@@ -45,20 +45,18 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
 
-  extern uint8_t sendcan;
-  extern uint8_t fastcan;
+  extern FDCAN_HandleTypeDef hfdcan1;
+  extern IWDG_HandleTypeDef hiwdg;
+  extern SPI_HandleTypeDef hspi1; 
 
-  extern uint8_t wsData1[8];
-  extern uint8_t wsData2[8];
+  volatile uint8_t sendcan = 0;
+  volatile uint8_t toggleled = 0;
+  volatile uint8_t fastcan = 0;
 
-  typedef struct {
-    volatile float speed;
-    volatile uint32_t currentTick;
-    volatile uint32_t delta;
-    //volatile uint32_t lastDelta;
-    //volatile uint32_t midDelta;
-    volatile uint32_t lastTick;
-  } Wheelspeed;
+  FDCAN_RxHeaderTypeDef rxHeader;
+  uint8_t rxData[8];
+  uint32_t id;
+  volatile uint8_t dataRecieved = 0;
 
   Wheelspeed wheel1;
   Wheelspeed wheel2;
@@ -208,6 +206,32 @@ const osThreadAttr_t WSTask_attributes = {
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
 
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+  if (htim->Instance == TIM14) {
+    sendcan = 1;
+  }
+  if (htim->Instance == TIM17) {
+    fastcan = 1;
+  }
+}
+
+void add_message_to_queue(FDCAN_TxHeaderTypeDef * header, uint8_t * datatosend) {
+  while (HAL_FDCAN_GetTxFifoFreeLevel(&hfdcan1) == 0) {
+    continue;
+  }
+  
+  HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, header, (const uint8_t *)datatosend);
+}
+
+void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs) {
+  if ((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != RESET) {
+
+    HAL_FDCAN_GetRxMessage(&hfdcan1, FDCAN_RX_FIFO0, &rxHeader, rxData);
+
+    id = rxHeader.Identifier;
+    dataRecieved = 1;
+  }
+}
 /* USER CODE END FunctionPrototypes */
 
 /**
@@ -331,7 +355,8 @@ void StartCanTask(void *argument)
     }
     if (fastcan) {
       fastcan = 0;
-      add_message_to_queue(&txheader8, (uint8_t *)wsData);
+      add_message_to_queue(&txheaderWS1, (uint8_t *)wsData1);
+      add_message_to_queue(&txheaderWS2, (uint8_t *)wsData2);
     }
   }
   /* USER CODE END CANTask */
