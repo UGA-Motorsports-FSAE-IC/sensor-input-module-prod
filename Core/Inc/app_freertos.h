@@ -71,7 +71,7 @@ void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
-
+void getWheelSpeed(Wheelspeed * wheel);
 /* USER CODE END Application */
 
 #ifdef __cplusplus
