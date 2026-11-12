@@ -99,11 +99,6 @@ void add_message_to_queue(FDCAN_TxHeaderTypeDef * header, uint8_t * datatosend) 
   }
   
   uint32_t errormessage = HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, header, (const uint8_t *)datatosend);
-  if (errormessage != HAL_OK) {
-    char buffer[40] = {0};
-    sprintf(buffer, "message send fail, error code %lu", errormessage);
-    customprint(buffer);
-  }
 }
 
 
@@ -220,7 +215,8 @@ int main(void)
   FDCAN_TxHeaderTypeDef txheader5;
   FDCAN_TxHeaderTypeDef txheader6;
   FDCAN_TxHeaderTypeDef txheader7;
-  FDCAN_TxHeaderTypeDef txheaderWS;
+  FDCAN_TxHeaderTypeDef txheaderWS1;
+  FDCAN_TxHeaderTypeDef txheaderWS2;
   FDCAN_TxHeaderTypeDef txheader9;
   FDCAN_TxHeaderTypeDef txheader10;
 
@@ -280,7 +276,6 @@ int main(void)
   txheader6.FDFormat = FDCAN_CLASSIC_CAN;
   txheader6.MessageMarker = 0;
 
-  uint8_t dataforshift [8] = {2, 2, 2, 2, 2, 2, 2, 2};
   txheader7.Identifier = 10;
   txheader7.IdType = FDCAN_STANDARD_ID;
   txheader7.TxFrameType = FDCAN_DATA_FRAME;
@@ -417,7 +412,6 @@ int main(void)
       add_message_to_queue(&txheader10, (uint8_t *)egtData); //EGT values
       add_message_to_queue(&txheader9, (uint8_t *)heartBeatData); //EGT heartbeat
 
-      customprint("sent all sensors\n"); 
     }
 
     if (dataRecieved) {
