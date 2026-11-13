@@ -8,8 +8,7 @@
 #ifndef SRC_STM32_MCP320X_READER_MCP320X_H_
 #define SRC_STM32_MCP320X_READER_MCP320X_H_
 
-#include "spi.h"
-#include "gpio.h"
+#include "main.h"
 
 #define ADC_SINGLEENDED 0b00000110
 #define ADC_DIFFERENTIAL 0b00000100

@@ -73,10 +73,14 @@ void Error_Handler(void);
 #define WS3_GPIO_Port GPIOB
 #define WS4_Pin GPIO_PIN_11
 #define WS4_GPIO_Port GPIOB
+#define WS5_Pin GPIO_PIN_8
+#define WS5_GPIO_Port GPIOA
 #define SWDIO_Pin GPIO_PIN_13
 #define SWDIO_GPIO_Port GPIOA
 #define SWCLK_Pin GPIO_PIN_14
 #define SWCLK_GPIO_Port GPIOA
+#define WS6_Pin GPIO_PIN_6
+#define WS6_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
