@@ -23,52 +23,6 @@ Mcu.Family=STM32C0
 Mcu.IP0=CORTEX_M0+
 Mcu.IP1=FDCAN1
 Mcu.IP10=USART1
-<<<<<<< HEAD
-Mcu.IP2=IWDG
-Mcu.IP3=NUCLEO-C092RC
-Mcu.IP4=NVIC
-Mcu.IP5=RCC
-Mcu.IP6=SPI1
-Mcu.IP7=SYS
-Mcu.IP8=TIM14
-Mcu.IP9=TIM15
-Mcu.IPNb=12
-Mcu.Name=STM32C092RCTx
-Mcu.Package=LQFP64
-Mcu.Pin0=PC13
-Mcu.Pin1=PC14-OSCX_IN(PC14)
-Mcu.Pin10=PA3
-Mcu.Pin11=PA5
-Mcu.Pin12=PA6
-Mcu.Pin13=PA7
-Mcu.Pin14=PB0
-Mcu.Pin15=PB1
-Mcu.Pin16=PB2
-Mcu.Pin17=PB10
-Mcu.Pin18=PB11
-Mcu.Pin19=PA8
-Mcu.Pin2=PC15-OSCX_OUT(PC15)
-Mcu.Pin20=PA9
-Mcu.Pin21=PA10
-Mcu.Pin22=PA13
-Mcu.Pin23=PA14-BOOT0
-Mcu.Pin24=PC9
-Mcu.Pin25=PB6
-Mcu.Pin26=PB9
-Mcu.Pin27=VP_IWDG_VS_IWDG
-Mcu.Pin28=VP_SYS_VS_Systick
-Mcu.Pin29=VP_TIM14_VS_ClockSourceINT
-Mcu.Pin3=PF0-OSC_IN(PF0)
-Mcu.Pin30=VP_TIM15_VS_ClockSourceINT
-Mcu.Pin31=VP_NUCLEO-C092RC_VS_BSP_COMMON
-Mcu.Pin4=PF1-OSC_OUT(PF1)
-Mcu.Pin5=PC2
-Mcu.Pin6=PC3
-Mcu.Pin7=PA0
-Mcu.Pin8=PA1
-Mcu.Pin9=PA2
-Mcu.PinsNb=32
-=======
 Mcu.IP11=NUCLEO-C092RC
 Mcu.IP2=IWDG
 Mcu.IP3=NVIC
@@ -110,7 +64,6 @@ Mcu.Pin7=PA1
 Mcu.Pin8=PA6
 Mcu.Pin9=PA7
 Mcu.PinsNb=28
->>>>>>> ws
 Mcu.ThirdPartyNb=0
 Mcu.UserConstants=
 Mcu.UserName=STM32C092RCTx
@@ -242,11 +195,7 @@ ProjectManager.ToolChainLocation=
 ProjectManager.UAScriptAfterPath=
 ProjectManager.UAScriptBeforePath=
 ProjectManager.UnderRoot=false
-<<<<<<< HEAD
-ProjectManager.functionlistsort=1-SystemClock_Config-RCC-false-HAL-false,2-MX_GPIO_Init-GPIO-false-HAL-true,3-MX_FDCAN1_Init-FDCAN1-false-HAL-true,4-MX_SPI1_Init-SPI1-false-HAL-true,5-MX_USART1_UART_Init-USART1-false-HAL-true,6-MX_TIM14_Init-TIM14-false-HAL-true,7-MX_TIM15_Init-TIM15-false-HAL-true,0-MX_CORTEX_M0+_Init-CORTEX_M0+-false-HAL-true,false-0--NUCLEO-C092RC-true-HAL-true
-=======
 ProjectManager.functionlistsort=1-SystemClock_Config-RCC-false-HAL-false,2-MX_GPIO_Init-GPIO-false-HAL-true,3-MX_FDCAN1_Init-FDCAN1-false-HAL-true,4-MX_SPI1_Init-SPI1-false-HAL-true,5-MX_USART1_UART_Init-USART1-false-HAL-true,6-MX_TIM14_Init-TIM14-false-HAL-true,7-MX_TIM15_Init-TIM15-false-HAL-true,8-MX_IWDG_Init-IWDG-false-HAL-true,9-MX_TIM17_Init-TIM17-false-HAL-true,0-MX_CORTEX_M0+_Init-CORTEX_M0+-false-HAL-true
->>>>>>> ws
 RCC.ADCFreq_Value=48000000
 RCC.AHBFreq_Value=48000000
 RCC.APB1CLKDivider=RCC_APB1_DIV4
@@ -303,11 +252,6 @@ USART1.IPParameters=VirtualMode-Asynchronous
 USART1.VirtualMode-Asynchronous=VM_ASYNC
 VP_IWDG_VS_IWDG.Mode=IWDG_Activate
 VP_IWDG_VS_IWDG.Signal=IWDG_VS_IWDG
-<<<<<<< HEAD
-VP_NUCLEO-C092RC_VS_BSP_COMMON.Mode=COMMON
-VP_NUCLEO-C092RC_VS_BSP_COMMON.Signal=NUCLEO-C092RC_VS_BSP_COMMON
-=======
->>>>>>> ws
 VP_SYS_VS_Systick.Mode=SysTick
 VP_SYS_VS_Systick.Signal=SYS_VS_Systick
 VP_TIM14_VS_ClockSourceINT.Mode=Enable_Timer

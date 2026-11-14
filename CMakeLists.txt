@@ -46,6 +46,14 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     Core/src/stm32-mcp320x-reader/mcp320x.c
+    Core/Src/main.c
+    Core/Src/spi.c
+    Core/Src/iwdg.c
+    Core/Src/syscalls.c
+    Core/Src/gpio.c
+    Core/Src/tim.c
+    Core/Src/usart.c
+    Core/Src/fdcan.c
 )
 
 # Add include paths
