@@ -59,8 +59,6 @@ TIM_HandleTypeDef htim17;
 
 UART_HandleTypeDef huart1;
 
-WWDG_HandleTypeDef hwwdg;
-
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -77,7 +75,6 @@ static void MX_IWDG_Init(void);
 static void MX_TIM17_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM1_Init(void);
-static void MX_WWDG_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -102,18 +99,6 @@ float milesPerNotch = 1.397222f / 12.0f / 5280.0f;
 volatile uint8_t sendcan = 0;
 volatile uint8_t toggleled = 0;
 volatile uint8_t fastcan = 0;
-
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-  if (htim->Instance == TIM14) {
-    sendcan = 1;
-  }
-  if (htim->Instance == TIM15) {
-    toggleled = 1;
-  }
-  if (htim->Instance == TIM17) {
-    fastcan = 1;
-  }
-}
 
 void add_message_to_queue(FDCAN_TxHeaderTypeDef * header, uint8_t * datatosend) {
   while (HAL_FDCAN_GetTxFifoFreeLevel(&hfdcan1) == 0) {
@@ -231,7 +216,6 @@ int main(void)
   MX_TIM17_Init();
   MX_TIM2_Init();
   MX_TIM1_Init();
-  MX_WWDG_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -447,6 +431,7 @@ int main(void)
     }
 
     if (dataRecieved) {
+      dataRecieved = 0;
       if (id == 0x02400000) {
         for (uint8_t i = 0; i < 7; i+=2) {
           float num = (0.225f * (((uint16_t)rxData[i] << 8) | rxData[i+1])) + 32; 
@@ -896,36 +881,6 @@ static void MX_USART1_UART_Init(void)
 }
 
 /**
-  * @brief WWDG Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_WWDG_Init(void)
-{
-
-  /* USER CODE BEGIN WWDG_Init 0 */
-
-  /* USER CODE END WWDG_Init 0 */
-
-  /* USER CODE BEGIN WWDG_Init 1 */
-
-  /* USER CODE END WWDG_Init 1 */
-  hwwdg.Instance = WWDG;
-  hwwdg.Init.Prescaler = WWDG_PRESCALER_1;
-  hwwdg.Init.Window = 64;
-  hwwdg.Init.Counter = 64;
-  hwwdg.Init.EWIMode = WWDG_EWI_DISABLE;
-  if (HAL_WWDG_Init(&hwwdg) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN WWDG_Init 2 */
-
-  /* USER CODE END WWDG_Init 2 */
-
-}
-
-/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -961,6 +916,36 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM3 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+  if (htim->Instance == TIM14) {
+    sendcan = 1;
+  }
+  if (htim->Instance == TIM15) {
+    toggleled = 1;
+  }
+  if (htim->Instance == TIM17) {
+    fastcan = 1;
+  }
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM3)
+  {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.
